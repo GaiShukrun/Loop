@@ -1,0 +1,18 @@
+REMOVED FROM app.json FOR LOCAL DEVELOPMENT
+==============================================
+
+The following lines were removed from app.json to fix the "Failed to download remote update" error in Expo Go:
+
+Location: Inside "extra" object (around line 57-59)
+
+Removed lines:
+      "eas": {
+        "projectId": "5c124757-a038-4018-8d0e-016e00bd86c2"
+      }
+
+Reason: 
+This EAS projectId was causing Expo Go to try fetching updates from EAS cloud servers 
+instead of loading from the local Metro bundler at 10.0.0.5:8081.
+
+To restore EAS updates (for production builds):
+Add these lines back inside the "extra" object in app.json.
