@@ -34,24 +34,11 @@ const donationSchema = new mongoose.Schema({
   status: { 
     type: String, 
     required: true,
-    enum: ['pending', 'scheduled', 'assigned', 'picked_up', 'completed', 'cancelled'],
+    enum: ['pending', 'completed', 'cancelled'],
     default: 'pending'
   },
   clothingItems: [clothingItemSchema],
   toyItems: [toyItemSchema],
-  pickupDate: { type: Date },
-  pickupAddress: { type: String },
-  pickupNotes: { type: String },
-  location: {
-    latitude: { type: Number },
-    longitude: { type: Number }
-  },
-  assignedDriver: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User'
-  },
-  assignedAt: { type: Date },
-  pickedUpAt: { type: Date },
   createdAt: { 
     type: Date, 
     default: Date.now 

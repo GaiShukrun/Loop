@@ -40,7 +40,6 @@ interface FormData {
   lastname: string;
   securityQuestion: string;
   securityAnswer: string;
-  userType: 'donor' | 'driver';
 }
 
 const SignUp = () => {
@@ -52,8 +51,7 @@ const SignUp = () => {
     firstname: '',
     lastname: '',
     securityQuestion: securityQuestions[0],
-    securityAnswer: '',
-    userType: 'donor'
+    securityAnswer: ''
   });
 
   const [errors, setErrors] = useState<Partial<FormData>>({});
@@ -99,10 +97,6 @@ const SignUp = () => {
     if (!formData.securityAnswer.trim()) {
       newErrors.securityAnswer = 'Security answer is required';
     }
-
-    if (!formData.userType) {
-      newErrors.userType = 'Please select a user type' as any;
-    }
    
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -122,8 +116,7 @@ const SignUp = () => {
         firstname: formData.firstname,
         lastname: formData.lastname,
         securityQuestion: formData.securityQuestion,
-        securityAnswer: formData.securityAnswer,
-        userType: formData.userType
+        securityAnswer: formData.securityAnswer
       });
       
       setShowSuccessMessage(true);
@@ -148,39 +141,9 @@ const SignUp = () => {
       >
         <ScrollView contentContainerStyle={styles.scrollContainer}>
           <Text style={styles.title}>Create Account</Text>
-          <Text style={styles.subtitle}>Sign up to start donating or driving</Text>
+          <Text style={styles.subtitle}>Join our community to share and receive items</Text>
 
           <View style={styles.inputContainer}>
-            {/* User Type Selection */}
-            <View style={styles.userTypeContainer}>
-              <Text style={styles.sectionTitle}>I want to:</Text>
-              <View style={styles.userTypeButtons}>
-                <TouchableOpacity
-                  style={[
-                    styles.userTypeButton,
-                    formData.userType === 'donor' && styles.userTypeButtonActive
-                  ]}
-                  onPress={() => setFormData({ ...formData, userType: 'donor' })}
-                >
-                  <Text style={[
-                    styles.userTypeButtonText,
-                    formData.userType === 'donor' && styles.userTypeButtonTextActive
-                  ]}>Donate Items</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[
-                    styles.userTypeButton,
-                    formData.userType === 'driver' && styles.userTypeButtonActive
-                  ]}
-                  onPress={() => setFormData({ ...formData, userType: 'driver' })}
-                >
-                  <Text style={[
-                    styles.userTypeButtonText,
-                    formData.userType === 'driver' && styles.userTypeButtonTextActive
-                  ]}>Pick Up Donations</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
 
             <TextInput
               style={styles.input}

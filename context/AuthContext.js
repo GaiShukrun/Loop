@@ -75,13 +75,9 @@ export const AuthProvider = ({ children }) => {
               }, 500);
             }
           } else {
-            // Redirect to appropriate dashboard based on userType
+            // Redirect to main dashboard
             setTimeout(() => {
-              if (parsedUser.userType === 'driver') {
-                router.replace('/driver-dashboard');
-              } else {
-                router.replace('/');
-              }
+              router.replace('/');
             }, 500);
           }
         }
@@ -115,13 +111,9 @@ export const AuthProvider = ({ children }) => {
       setUser(user);
       setIsUserLoggedIn(true);
       
-      // Redirect to appropriate dashboard based on userType
+      // Redirect to main dashboard
       setTimeout(() => {
-        if (user.userType === 'driver') {
-          router.replace('/driver-dashboard');
-        } else {
-          router.replace('/');
-        }
+        router.replace('/');
       }, 500);
       
       return true;
@@ -171,13 +163,9 @@ export const AuthProvider = ({ children }) => {
           }, 500);
         }
       } else {
-        // Redirect to appropriate dashboard based on userType
+        // Redirect to main dashboard
         setTimeout(() => {
-          if (user.userType === 'driver') {
-            router.replace('/driver-dashboard');
-          } else {
-            router.replace('/');
-          }
+          router.replace('/');
         }, 500);
       }
       

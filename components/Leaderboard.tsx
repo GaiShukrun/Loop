@@ -8,7 +8,7 @@ import {
   ActivityIndicator,
   RefreshControl,
 } from 'react-native';
-import { Trophy, Medal, Package, Truck } from 'lucide-react-native';
+import { Trophy, Medal } from 'lucide-react-native';
 import useApi from '@/hooks/useApi';
 
 type LeaderboardEntry = {
@@ -16,7 +16,6 @@ type LeaderboardEntry = {
   name: string;
   points: number;
   profileImage: string | null;
-  userType: 'donor' | 'driver';
 };
 
 const Leaderboard = () => {
@@ -65,9 +64,6 @@ const Leaderboard = () => {
     }
   };
 
-  const getUserTypeColor = (userType: string) => {
-    return userType === 'donor' ? '#BE3E28' : '#2D5A27';
-  };
 
   const renderItem = ({ item }: { item: LeaderboardEntry }) => (
     <View style={styles.leaderboardItem}>
@@ -93,16 +89,6 @@ const Leaderboard = () => {
         )}
         <View style={styles.nameContainer}>
           <Text style={styles.userName}>{item.name}</Text>
-          <View style={[styles.userTypeBadge, { backgroundColor: getUserTypeColor(item.userType) }]}>
-            {item.userType === 'donor' ? (
-              <Package size={12} color="white" />
-            ) : (
-              <Truck size={12} color="white" />
-            )}
-            <Text style={styles.userTypeText}>
-              {item.userType === 'donor' ? 'Donor' : 'Driver'}
-            </Text>
-          </View>
         </View>
       </View>
       

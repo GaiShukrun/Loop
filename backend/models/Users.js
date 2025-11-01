@@ -16,14 +16,7 @@ const userSchema = new mongoose.Schema({
     phoneNumber: {type: String},
     addressNotes: {type: String},
 
-    userType: {type: String, enum: ['donor', 'driver'], default: 'donor'},
-    // Driver specific fields
-    isAvailable: {type: Boolean, default: true},
-    currentLocation: {
-        latitude: {type: Number},
-        longitude: {type: Number}
-    },
-    activePickups: [{type: mongoose.Schema.Types.ObjectId, ref: 'Donation'}]
+    // User type removed - all users are now community members
 });
 
 const User = mongoose.model('User', userSchema);
