@@ -14,6 +14,9 @@ import { useRouter } from 'expo-router';
 import { useApi } from '@/hooks/useApi';
 import { ArrowLeft } from 'lucide-react-native';
 
+// API URL - should match the one in useApi.js
+const API_URL = 'http://10.0.0.5:3000';
+
 interface ClothingItem {
   type: string;
   size: string;
@@ -103,11 +106,26 @@ export default function BrowseDonations() {
   };
 
   const getItemImage = (donation: Donation) => {
+    let imageUrl = null;
+    
     if (donation.donationType === 'clothes' && donation.clothingItems[0]?.images[0]) {
-      return donation.clothingItems[0].images[0];
+      imageUrl = donation.clothingItems[0].images[0];
     } else if (donation.donationType === 'toys' && donation.toyItems[0]?.images[0]) {
-      return donation.toyItems[0].images[0];
+      imageUrl = donation.toyItems[0].images[0];
     }
+    
+    if (imageUrl) {
+      // If the URL is a relative path (starts with /), prepend the API_URL
+      if (imageUrl.startsWith('/')) {
+        const fullUrl = `${API_URL}${imageUrl}`;
+        console.log('Constructed full image URL:', fullUrl);
+        return fullUrl;
+      }
+      // Otherwise return as-is (for backward compatibility with old local URIs)
+      console.log('Image URL:', imageUrl);
+      return imageUrl;
+    }
+    
     return null;
   };
 

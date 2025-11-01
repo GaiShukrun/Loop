@@ -23,6 +23,7 @@ import { ArrowLeft, X, Plus, Minus, Cpu, Image as ImageIcon, Camera, Sparkles, Z
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { useAuth } from '@/context/AuthContext';
 import { useApi } from '@/hooks/useApi';
+import { useApiUpload } from '@/hooks/useApiUpload';
 import { CustomAlertMessage } from '@/components/CustomAlertMessage';
 import DonationCart from '@/components/DonationCart';
 import ClothingAnalyzer from '@/components/ClothingAnalyzer';
@@ -44,6 +45,7 @@ export default function DonationDetails() {
   const params = useLocalSearchParams();
   const router = useRouter();
   const api = useApi();
+  const { uploadFile } = useApiUpload();
   const donationType = params.type as string || '';
   
   // Refresh user data when screen comes into focus (to get updated address)
@@ -69,7 +71,36 @@ export default function DonationDetails() {
     if (donationType) {
       const formType = donationType === 'toys' ? 'toys' : 'clothes' as 'clothes' | 'toys';
       setActiveForm(formType);
-      handleStartNewDonation(formType);
+      setShowDonationCart(false);
+      
+      // Initialize items based on type
+      if (formType === 'clothes') {
+        setClothingItems([{
+          id: Date.now(),
+          type: '',
+          size: '',
+          color: '',
+          gender: '',
+          quantity: 1,
+          images: [] as string[],
+          aiSelectedType: false,
+          aiSelectedColor: false,
+          aiSelectedSize: false,
+          aiSelectedGender: false
+        }]);
+      } else {
+        setToyItems([{
+          id: Date.now(),
+          name: '',
+          description: '',
+          condition: '',
+          quantity: 1,
+          images: [] as string[],
+          aiSelectedName: false,
+          aiSelectedDescription: false,
+          aiSelectedCondition: false
+        }]);
+      }
     }
   }, [donationType]);
 
@@ -476,7 +507,7 @@ export default function DonationDetails() {
     }
 
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: 'images' as any,
       allowsEditing: true,
 
       quality: 0.8,
@@ -622,25 +653,68 @@ export default function DonationDetails() {
 
       console.log('Submitting donation with user ID:', userId);
 
-      // Prepare data for API
+      // Upload all images first and get server URLs
+      console.log('Uploading images to server...');
+      const itemsToProcess = activeForm === 'clothes' ? clothingItems : toyItems;
+      const uploadedItems = [];
+
+      for (const item of itemsToProcess) {
+        const uploadedImageUrls = [];
+        
+        // Upload each image for this item
+        for (const imageUri of item.images) {
+          try {
+            console.log('Uploading image:', imageUri);
+            const uploadResult = await uploadFile('/upload-donation-image', imageUri);
+            
+            if (uploadResult.success && uploadResult.imageUrl) {
+              // Store the server URL
+              uploadedImageUrls.push(uploadResult.imageUrl);
+              console.log('Image uploaded successfully:', uploadResult.imageUrl);
+            } else {
+              throw new Error('Failed to upload image');
+            }
+          } catch (uploadError) {
+            console.error('Error uploading image:', uploadError);
+            setAlertTitle('Upload Error');
+            setAlertMessage('Failed to upload images. Please try again.');
+            setAlertVisible(true);
+            setIsLoading(false);
+            return;
+          }
+        }
+
+        // Add item with uploaded image URLs
+        if (activeForm === 'clothes') {
+          const clothingItem = item as any;
+          uploadedItems.push({
+            type: clothingItem.type,
+            size: clothingItem.size,
+            color: clothingItem.color,
+            gender: clothingItem.gender,
+            quantity: clothingItem.quantity,
+            images: uploadedImageUrls
+          });
+        } else {
+          const toyItem = item as any;
+          uploadedItems.push({
+            name: toyItem.name,
+            description: toyItem.description,
+            condition: toyItem.condition,
+            quantity: toyItem.quantity,
+            images: uploadedImageUrls
+          });
+        }
+      }
+
+      console.log('All images uploaded successfully');
+
+      // Prepare data for API with uploaded image URLs
       const donationData = {
         userId: userId,
         donationType: activeForm,
-        clothingItems: activeForm === 'clothes' ? clothingItems.map(item => ({
-          type: item.type,
-          size: item.size,
-          color: item.color,
-          gender: item.gender,
-          quantity: item.quantity,
-          images: item.images
-        })) : [],
-        toyItems: activeForm === 'toys' ? toyItems.map(item => ({
-          name: item.name,
-          description: item.description,
-          condition: item.condition,
-          quantity: item.quantity,
-          images: item.images
-        })) : []
+        clothingItems: activeForm === 'clothes' ? uploadedItems : [],
+        toyItems: activeForm === 'toys' ? uploadedItems : []
       };
 
       // Save donation to backend

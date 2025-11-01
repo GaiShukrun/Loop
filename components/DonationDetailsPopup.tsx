@@ -11,6 +11,9 @@ import {
 } from 'react-native';
 import { X, Package, Shirt, Dot, Baby } from 'lucide-react-native';
 
+// API URL - should match the one in useApi.js
+const API_URL = 'http://10.0.0.5:3000';
+
 interface DonationItem {
   _id: string;
   type?: string;
@@ -51,6 +54,14 @@ const { width, height } = Dimensions.get('window');
 export default function DonationDetailsPopup({ visible, onClose, donation }: DonationDetailsPopupProps) {
   if (!donation) return null;
 
+  // Helper function to construct full image URL
+  const getImageUrl = (imageUrl: string) => {
+    if (imageUrl.startsWith('/')) {
+      return `${API_URL}${imageUrl}`;
+    }
+    return imageUrl;
+  };
+
   const renderClothingItem = (item: DonationItem, index: number) => (
     <View key={item._id || index} style={styles.itemCard}>
       <View style={styles.itemHeader}>
@@ -66,7 +77,7 @@ export default function DonationDetailsPopup({ visible, onClose, donation }: Don
       {item.images && item.images.length > 0 && (
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.imageContainer}>
           {item.images.map((image, imgIndex) => (
-            <Image key={imgIndex} source={{ uri: image }} style={styles.itemImage} />
+            <Image key={imgIndex} source={{ uri: getImageUrl(image) }} style={styles.itemImage} />
           ))}
         </ScrollView>
       )}
@@ -88,7 +99,7 @@ export default function DonationDetailsPopup({ visible, onClose, donation }: Don
       {item.images && item.images.length > 0 && (
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.imageContainer}>
           {item.images.map((image, imgIndex) => (
-            <Image key={imgIndex} source={{ uri: image }} style={styles.itemImage} />
+            <Image key={imgIndex} source={{ uri: getImageUrl(image) }} style={styles.itemImage} />
           ))}
         </ScrollView>
       )}

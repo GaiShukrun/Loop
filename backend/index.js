@@ -596,6 +596,123 @@ app.get('/profile-image/:id', async (req, res) => {
   }
 });
 
+// Upload donation item image to GridFS
+app.post('/upload-donation-image', upload.single('image'), async (req, res) => {
+  try {
+    console.log('==== DONATION IMAGE UPLOAD REQUEST RECEIVED ====');
+    
+    if (!req.file) {
+      console.log('No file received in request');
+      return res.status(400).json({ message: 'Image file is required' });
+    }
+    
+    console.log('File received:', {
+      fieldname: req.file.fieldname,
+      originalname: req.file.originalname,
+      mimetype: req.file.mimetype,
+      size: req.file.size
+    });
+    
+    // Process image with sharp
+    const processedImageBuffer = await sharp(req.file.buffer)
+      .resize(800, 800, { fit: 'inside', withoutEnlargement: true })
+      .jpeg({ quality: 80 })
+      .toBuffer();
+    
+    console.log('Image processed. Size:', processedImageBuffer.length, 'bytes');
+    
+    // Get GridFS bucket for donation images
+    const bucket = getGridFSBucket();
+    
+    // Generate unique filename
+    const filename = `donation-${Date.now()}-${Math.random().toString(36).substring(7)}.jpg`;
+    
+    // Create upload stream
+    const uploadStream = bucket.openUploadStream(filename, {
+      contentType: 'image/jpeg',
+      metadata: { type: 'donation-item' }
+    });
+    
+    // Convert buffer to readable stream
+    const readableStream = new Readable();
+    readableStream.push(processedImageBuffer);
+    readableStream.push(null);
+    
+    // Upload promise
+    const uploadPromise = new Promise((resolve, reject) => {
+      uploadStream.on('finish', () => {
+        console.log('Upload stream finished. File ID:', uploadStream.id);
+        resolve(uploadStream.id);
+      });
+      uploadStream.on('error', (err) => {
+        console.error('Upload stream error:', err);
+        reject(err);
+      });
+    });
+    
+    // Pipe the readable stream to the upload stream
+    readableStream.pipe(uploadStream);
+    
+    // Wait for upload to complete
+    const uploadedFileId = await uploadPromise;
+    console.log('Donation image uploaded successfully. File ID:', uploadedFileId);
+    
+    // Return the image URL
+    const imageUrl = `/donation-image/${uploadedFileId}`;
+    console.log('Image URL:', imageUrl);
+    
+    res.status(200).json({
+      success: true,
+      message: 'Image uploaded successfully',
+      imageId: uploadedFileId.toString(),
+      imageUrl: imageUrl
+    });
+    
+  } catch (error) {
+    console.error('Error uploading donation image:', error);
+    return res.status(500).json({ 
+      success: false,
+      message: 'Server error', 
+      error: error.message 
+    });
+  }
+});
+
+// Get donation image by ID
+app.get('/donation-image/:id', async (req, res) => {
+  try {
+    const imageId = req.params.id;
+    
+    if (!imageId || !mongoose.Types.ObjectId.isValid(imageId)) {
+      return res.status(400).json({ message: 'Valid image ID is required' });
+    }
+    
+    const bucket = getGridFSBucket();
+    
+    // Check if the file exists
+    const file = await mongoose.connection.db.collection('profileImages.files').findOne({
+      _id: new mongoose.Types.ObjectId(imageId)
+    });
+    
+    if (!file) {
+      return res.status(404).json({ message: 'Image not found' });
+    }
+    
+    // Set the appropriate headers
+    res.set('Content-Type', file.contentType);
+    res.set('Content-Length', file.length);
+    res.set('Cache-Control', 'public, max-age=31536000'); // Cache for 1 year
+    
+    // Create a download stream and pipe it to the response
+    const downloadStream = bucket.openDownloadStream(new mongoose.Types.ObjectId(imageId));
+    downloadStream.pipe(res);
+    
+  } catch (error) {
+    console.error('Error retrieving donation image:', error);
+    return res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
 // Get user by ID (for refreshing user data)
 app.get('/users/:userId', async (req, res) => {
   try {
@@ -923,113 +1040,6 @@ app.delete('/donation/:donationId', async (req, res) => {
   }
 });
 
-// Schedule pickup for a donation
-app.post('/schedule-pickup', async (req, res) => {
-  console.log('Scheduling pickup for donation:', req.body);
-  try {
-    const { donationId, pickupDate, userId, location, deliveryMessage } = req.body;
-
-    if (!donationId || !pickupDate || !userId) {
-      return res.status(400).json({
-        success: false,
-        message: 'Donation ID, pickup date, and user ID are required'
-      });
-    }
-
-    console.log('Scheduling pickup for donation:', donationId);
-    console.log('Pickup date:', pickupDate);
-
-    // Convert string donationId to MongoDB ObjectId
-    const mongoose = require('mongoose');
-    let donationObjectId;
-
-    try {
-      donationObjectId = new mongoose.Types.ObjectId(donationId);
-    } catch (err) {
-      console.error('Invalid ObjectId format:', err.message);
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid donation ID format'
-      });
-    }
-
-    // Find the donation
-    const donation = await Donation.findById(donationObjectId);
-
-    if (!donation) {
-      return res.status(404).json({
-        success: false,
-        message: 'Donation not found'
-      });
-    }
-
-    // Verify that the donation belongs to the user
-    if (donation.userId.toString() !== userId) {
-      return res.status(403).json({
-        success: false,
-        message: 'You are not authorized to schedule this donation'
-      });
-    }
-
-    // Only allow scheduling if donation is currently 'pending'
-    if (donation.status !== 'pending') {
-      return res.status(400).json({
-        success: false,
-        message: `Donation cannot be scheduled because its status is '${donation.status}'. Only 'pending' donations can be scheduled.`
-      });
-    }
-
-    // Update the donation status, pickup date, address, and notes
-    donation.status = 'scheduled';
-    donation.pickupDate = new Date(pickupDate);
-    if (location.type === 'gps') {
-      donation.pickupAddress = location.address;
-      if (location.latitude && location.longitude) {
-        donation.location.latitude = location.latitude;
-        donation.location.longitude = location.longitude;
-      } else {
-        console.log('GPS type but no coordinates available');
-      }
-    } else if (location.type === 'manual') {
-      donation.pickupAddress = location.address;
-    }
-    
-    if (deliveryMessage) {
-      donation.pickupNotes = deliveryMessage;
-    }
-
-    // Save and check if the update was successful
-    await donation.save();
-
-    // Double-check the update
-    const updatedDonation = await Donation.findById(donationObjectId);
-
-    if (updatedDonation.status !== 'scheduled') {
-      console.error('Failed to update donation status to scheduled');
-      return res.status(500).json({
-        success: false,
-        message: 'Failed to update donation status'
-      });
-    }
-
-    console.log('Pickup scheduled successfully, status:', updatedDonation.status);
-
-    return res.status(200).json({
-      success: true,
-      message: 'Pickup scheduled successfully',
-      donation: updatedDonation
-    });
-
-  } catch (error) {
-    console.error('Error scheduling pickup:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Server error',
-      error: error.message
-    });
-  }
-});
-
 // Google Cloud Vision API for color analysis
 const axios = require('axios');
 
@@ -1173,362 +1183,57 @@ function rgbToHex(r, g, b) {
   ].join('');
 }
 
-
-
-// Driver specific endpoints
-
-// Update driver location
-app.post('/driver/location', auth, async (req, res) => {
-    try {
-        const { latitude, longitude } = req.body;
-        const user = req.user;
-
-        if (user.userType !== 'driver') {
-            return res.status(403).json({ message: 'Unauthorized' });
-        }
-
-        user.currentLocation = { latitude, longitude };
-        await user.save();
-
-        res.json({ message: 'Location updated successfully' });
-    } catch (error) {
-        console.error('Location update error:', error);
-        res.status(500).json({ message: 'Error updating location', error: error.message });
-    }
-});
-
-// Get available pickups for driver
-app.get('/driver/available-pickups', auth, async (req, res) => {
-    try {
-        const { latitude, longitude } = req.query;
-
-        // Find all donations that are scheduled but not assigned
-        const availablePickups = await Donation.find({
-            status: 'scheduled',
-            assignedDriver: { $exists: false }
-        }).populate('userId', 'firstname lastname');
-
-        // Calculate distance for each pickup if coordinates are provided
-        if (latitude && longitude) {
-            const pickupsWithDistance = availablePickups.map(pickup => {
-                const distance = calculateDistance(
-                    parseFloat(latitude),
-                    parseFloat(longitude),
-                    pickup.location.latitude,
-                    pickup.location.longitude
-                );
-                return {
-                    ...pickup.toObject(),
-                    distance
-                };
-            });
-
-            // Sort by distance
-            pickupsWithDistance.sort((a, b) => a.distance - b.distance);
-            return res.json(pickupsWithDistance);
-        }
-
-        res.json(availablePickups);
-    } catch (error) {
-        console.error('Available pickups error:', error);
-        res.status(500).json({ message: 'Error fetching available pickups', error: error.message });
-    }
-});
-
-
-
-// Assign pickup to driver
-app.post('/driver/assign-pickup/:donationId', auth, async (req, res) => {
-    try {
-        const { donationId } = req.params;
-        const user = req.user;
-
-        if (user.userType !== 'driver') {
-            return res.status(403).json({ message: 'Unauthorized' });
-        }
-
-        const donation = await Donation.findById(donationId);
-        if (!donation) {
-            return res.status(404).json({ message: 'Donation not found' });
-        }
-
-        if (donation.status !== 'scheduled' || donation.assignedDriver) {
-            return res.status(400).json({ message: 'Donation is not available for pickup' });
-        }
-
-        // Assign donation to driver
-        donation.assignedDriver = user._id;
-        donation.status = 'assigned';
-        donation.assignedAt = new Date();
-        await donation.save();
-
-        // Add to driver's active pickups
-        user.activePickups.push(donationId);
-        await user.save();
-
-        res.json({ message: 'Pickup assigned successfully', donation });
-    } catch (error) {
-        console.error('Assign pickup error:', error);
-        res.status(500).json({ message: 'Error assigning pickup', error: error.message });
-    }
-});
-
-// Mark pickup as completed
-app.post('/driver/complete-pickup/:donationId', auth, async (req, res) => {
-    try {
-        const { donationId } = req.params;
-        const user = req.user;
-
-        if (user.userType !== 'driver') {
-            return res.status(403).json({ message: 'Unauthorized' });
-        }
-
-        const donation = await Donation.findById(donationId);
-        if (!donation) {
-            return res.status(404).json({ message: 'Donation not found' });
-        }
-
-        if (donation.assignedDriver.toString() !== user._id.toString()) {
-            return res.status(403).json({ message: 'Not authorized to complete this pickup' });
-        }
-
-        // Calculate points for donor based on donation type and items
-        let donorPoints = 0;
-        if (donation.donationType === 'clothes') {
-            donorPoints = donation.clothingItems.reduce((total, item) => total + (item.quantity * 10), 0);
-        } else if (donation.donationType === 'toys') {
-            donorPoints = donation.toyItems.reduce((total, item) => total + (item.quantity * 15), 0);
-        }
-
-        // Calculate points for driver (base points + bonus for quick completion)
-        const driverPoints = calculateDriverPoints(donation);
-
-        // Update donation status
-        donation.status = 'completed';
-        donation.pickedUpAt = new Date();
-        await donation.save();
-
-        // Update donor points
-        const donor = await User.findById(donation.userId);
-        if (donor) {
-            donor.points += donorPoints;
-            await donor.save();
-        }
-
-        // Update driver points
-        user.points += driverPoints;
-        await user.save();
-
-        // Remove from driver's active pickups
-        user.activePickups = user.activePickups.filter(id => id.toString() !== donationId);
-        await user.save();
-
-        res.json({ 
-            message: 'Pickup completed successfully', 
-            donation,
-            donorPointsAwarded: donorPoints,
-            driverPointsAwarded: driverPoints
-        });
-    } catch (error) {
-        console.error('Complete pickup error:', error);
-        res.status(500).json({ message: 'Error completing pickup', error: error.message });
-    }
-});
-
-// Helper function to calculate driver points
-function calculateDriverPoints(donation) {
-    // Base points for completing a pickup
-    let points = 20;
-
-    // Bonus points based on number of items
-    const totalItems = donation.donationType === 'clothes' 
-        ? donation.clothingItems.reduce((total, item) => total + item.quantity, 0)
-        : donation.toyItems.reduce((total, item) => total + item.quantity, 0);
-    
-    // Add 5 points per item
-    points += totalItems * 5;
-
-    // Bonus for quick completion (if completed within 24 hours of assignment)
-    if (donation.assignedAt) {
-        const completionTime = new Date();
-        const timeDiff = completionTime - new Date(donation.assignedAt);
-        const hoursDiff = timeDiff / (1000 * 60 * 60);
-        
-        if (hoursDiff <= 24) {
-            points += 15; // Quick completion bonus
-        }
-    }
-
-    return points;
-}
-
-// Get driver's active pickups
-app.get('/driver/active-pickups', auth, async (req, res) => {
-    try {
-        const user = req.user;
-
-        if (user.userType !== 'driver') {
-            return res.status(403).json({ message: 'Unauthorized' });
-        }
-
-        // Find all donations assigned to this driver
-        const activePickups = await Donation.find({
-            assignedDriver: user._id,
-            status: 'assigned'
-        }).populate('userId', 'firstname lastname');
-
-        res.json(activePickups);
-    } catch (error) {
-        console.error('Active pickups error:', error);
-        res.status(500).json({ message: 'Error fetching active pickups', error: error.message });
-    }
-});
-
-// Get driver's completed donations
-app.get('/driver/completed-donations', auth, async (req, res) => {
-    try {
-        const user = req.user;
-
-        if (user.userType !== 'driver') {
-            return res.status(403).json({ message: 'Unauthorized' });
-        }
-
-        // Find all donations assigned to this driver and completed
-        const completedDonations = await Donation.find({
-            assignedDriver: user._id,
-            status: 'completed'
-        }).populate('userId', 'firstname lastname');
-
-        res.json(completedDonations);
-    } catch (error) {
-        console.error('Completed donations error:', error);
-        res.status(500).json({ message: 'Error fetching completed donations', error: error.message });
-    }
-});
-
-// Get detailed donation information for popup
-app.get('/driver/donation/:donationId', auth, async (req, res) => {
-    try {
-        const { donationId } = req.params;
-        const user = req.user;
-
-        if (user.userType !== 'driver') {
-            return res.status(403).json({ message: 'Unauthorized' });
-        }
-
-        // Find the donation with all details
-        const donation = await Donation.findById(donationId)
-            .populate('userId', 'firstname lastname');
-
-        if (!donation) {
-            return res.status(404).json({ message: 'Donation not found' });
-        }
-
-        res.json(donation);
-    } catch (error) {
-        console.error('Get donation details error:', error);
-        res.status(500).json({ message: 'Error fetching donation details', error: error.message });
-    }
-});
-
-// Helper function to calculate distance between two points
-function calculateDistance(lat1, lon1, lat2, lon2) {
-    const R = 6371; // Radius of the earth in km
-    const dLat = deg2rad(lat2 - lat1);
-    const dLon = deg2rad(lon2 - lon1);
-    const a = 
-        Math.sin(dLat/2) * Math.sin(dLat/2) +
-        Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) * 
-        Math.sin(dLon/2) * Math.sin(dLon/2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-    const distance = R * c; // Distance in km
-    return distance;
-}
-
-function deg2rad(deg) {
-    return deg * (Math.PI/180);
-}
-
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Server running on port ${PORT}`);
-});
-
 app.post("/analyze-with-gemini", async (req, res) => {
   try {
     const { analysisType, imageData, prompt } = req.body;
     
-    if (!imageData || !analysisType || !prompt) {
-      return res.status(400).json({ error: "Missing required fields: analysisType, imageData, prompt" });
+    if (!imageData || !analysisType) {
+      return res.status(400).json({ 
+        success: false, 
+        error: "Missing required fields" 
+      });
     }
-    
-    // Use the API key directly on the server (secure)
-    const genAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-    
-    // Convert base64 image data to File object
-    const base64Data = imageData.replace(/^data:image\/[a-z]+;base64,/, '');
-    const buffer = Buffer.from(base64Data, 'base64');
-    const imageFile = new File([buffer], "image.jpg", { type: "image/jpeg" });
-    
-    // Upload file to Gemini
-    const myfile = await genAI.files.upload({
-      file: imageFile,
-      config: { mimeType: "image/jpeg" }
+
+    const genAI = new GoogleGenAI(process.env.GEMINI_API_KEY);
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+    // Remove data URL prefix if present
+    const base64Image = imageData.replace(/^data:image\/\w+;base64,/, '');
+
+    const imageParts = [
+      {
+        inlineData: {
+          data: base64Image,
+          mimeType: "image/jpeg",
+        },
+      },
+    ];
+
+    const result = await model.generateContent([prompt, ...imageParts]);
+    const response = await result.response;
+    const text = response.text();
+
+    res.json({
+      success: true,
+      analysis: text,
+      type: analysisType
     });
-    
-    // Generate content with the specific model used in frontend
-    const generationResponse = await genAI.models.generateContent({
-      model: "gemini-2.0-flash-thinking-exp-01-21",
-      contents: [
-        {
-          role: "user",
-          parts: [
-            { fileData: { fileUri: myfile.uri, mimeType: myfile.mimeType } },
-            { text: prompt }
-          ]
-        }
-      ]
-    });
-    
-    // Send back only the result, never the key
-    res.json({ 
-      result: generationResponse.text?.trim(),
-      analysisType: analysisType 
-    });
+
   } catch (error) {
-    console.error("Gemini analysis error:", error);
-    res.status(500).json({ error: "AI processing failed", details: error.message });
+    console.error("Gemini API Error:", error);
+    res.status(500).json({ 
+      success: false, 
+      error: error.message 
+    });
   }
-});
-
-// Get driver's completed donations
-app.get('/driver/completed-donations', auth, async (req, res) => {
-    try {
-        const user = req.user;
-
-        if (user.userType !== 'driver') {
-            return res.status(403).json({ message: 'Unauthorized' });
-        }
-
-        // Find all completed donations assigned to this driver
-        const completedDonations = await Donation.find({
-            assignedDriver: user._id,
-            status: 'completed'
-        }).populate('userId', 'firstname lastname');
-
-        res.json(completedDonations);
-    } catch (error) {
-        console.error('Completed donations error:', error);
-        res.status(500).json({ message: 'Error fetching completed donations', error: error.message });
-    }
 });
 
 // Get combined leaderboard
 app.get('/leaderboard', async (req, res) => {
     try {
-        // Get all users (both donors and drivers)
+        // Get all community members
         const users = await User.find()
-            .select('firstname lastname points profileImage userType')
+            .select('firstname lastname points profileImage')
             .sort({ points: -1 })
             .limit(50);
 
@@ -1543,8 +1248,7 @@ app.get('/leaderboard', async (req, res) => {
                 rank: index + 1,
                 name: `${user.firstname} ${user.lastname}`,
                 points: user.points,
-                profileImage: user.profileImage ? `${baseUrl}/profile-image/${user.profileImage}` : null,
-                userType: user.userType // 'donor' or 'driver'
+                profileImage: user.profileImage ? `${baseUrl}/profile-image/${user.profileImage}` : null
             }))
         });
     } catch (error) {
