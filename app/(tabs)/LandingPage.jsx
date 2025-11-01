@@ -146,20 +146,21 @@ const DonationScreen = () => {
             </View>
             {/* <Text style={styles.subtitle}>Choose a donation category</Text> */}
 
-            {/* Donation Categories */}
+            {/* CTA Cards - Enhanced */}
             <View style={styles.categories}>
               <TouchableOpacity 
-                style={[styles.categoryCard, { backgroundColor: '#2D5A37', width: '100%' }]}
+                style={styles.ctaCard}
                 onPress={() => handleCategoryPress('Infant Toys')}
+                activeOpacity={0.8}
               >
-                <View style={[styles.categoryIconContainer, { backgroundColor: '#2D5A37' }]}>
-                  <Image 
-                              source={require('../../assets/images/donation.png')} 
-                              style={styles.navIcon} 
-                            />
+                <View style={styles.ctaIconContainer}>
+                  <Text style={styles.ctaEmoji}>🎁</Text>
                 </View>
-                <Text style={[styles.categoryTitle, { color: '#e8f5e9' }]}>Share Items</Text>
-                <Text style={[styles.categoryDescription, { color: '#e8f5e9' }]}>Share toys, books, and more</Text>
+                <View style={styles.ctaTextContainer}>
+                  <Text style={styles.ctaTitle}>שתף פריטים</Text>
+                  <Text style={styles.ctaSubtitle}>Share Items</Text>
+                  <Text style={styles.ctaDescription}>Share toys, books, clothes and more with your community</Text>
+                </View>
               </TouchableOpacity>
             </View>
 
@@ -175,27 +176,28 @@ const DonationScreen = () => {
               <Text style={[styles.categoryDescription, { color: 'white' }]}>Identify clothing items with AI</Text>
             </TouchableOpacity> */}
 
-            {/* Browse Items Button */}
+            {/* Browse Items Button - Enhanced */}
             <TouchableOpacity 
-              style={[styles.categoryCard, { backgroundColor: '#4A90E2', width: '100%', marginBottom: 24 }]}
+              style={styles.ctaCardSecondary}
               onPress={() => router.push('/(tabs)/browse-donations')}
+              activeOpacity={0.8}
             >
-              <View style={[styles.categoryIconContainer, { backgroundColor: '#4A90E2' }]}>
-              <Image 
-                              source={require('../../assets/images/donation.png')} 
-                              style={styles.navIcon} 
-                            />
+              <View style={styles.ctaIconContainer}>
+                <Text style={styles.ctaEmoji}>🔍</Text>
               </View>
-              <Text style={[styles.categoryTitle, { color: '#e8f5e9' }]}>Browse Items</Text>
-              <Text style={[styles.categoryDescription, { color: '#e8f5e9' }]}>See all available items</Text>
+              <View style={styles.ctaTextContainer}>
+                <Text style={styles.ctaTitle}>עיין בפריטים</Text>
+                <Text style={styles.ctaSubtitle}>Browse Items</Text>
+                <Text style={styles.ctaDescription}>Discover items shared by your neighbors</Text>
+              </View>
             </TouchableOpacity>
 
-            {/* Leaderboard Section */}
+            {/* Leaderboard Section - Enhanced */}
             <View style={styles.leaderboardContainer}>
               <View style={styles.leaderboardHeader}>
-                <Text style={styles.leaderboardTitle}>Leaderboard</Text>
+                <Text style={styles.leaderboardTitle}>🏆 Leaderboard</Text>
                 <TouchableOpacity 
-                  style={styles.viewAllButton}
+                  style={styles.viewAllButtonEnhanced}
                   onPress={() => router.push('/leaderboard')}
                 >
                   <Text style={styles.viewAllText}>View All</Text>
@@ -217,7 +219,14 @@ const DonationScreen = () => {
                         index === 2 && styles.thirdPlace
                       ]}
                     >
-                      <Text style={styles.rankNumber}>{donor.rank}</Text>
+                      {/* Rank Badge with Medal */}
+                      <View style={styles.rankBadge}>
+                        <Text style={styles.rankMedal}>
+                          {index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `${donor.rank}`}
+                        </Text>
+                      </View>
+                      
+                      {/* Avatar */}
                       <View 
                         style={[
                           styles.userAvatar,
@@ -233,17 +242,19 @@ const DonationScreen = () => {
                           />
                         ) : (
                           <Text style={styles.avatarText}>
-                            {index === 0 ? '👑' : index === 1 ? '🥈' : '🥉'}
+                            {donor.name.charAt(0).toUpperCase()}
                           </Text>
                         )}
-                  </View>
-                  <View style={styles.userInfo}>
+                      </View>
+                      
+                      {/* User Info */}
+                      <View style={styles.userInfo}>
                         <Text style={styles.userName}>{donor.name}</Text>
-                    <View style={styles.pointsContainer}>
-                      <GiftIcon color="#BE3E28" size={14} />
+                        <View style={styles.pointsContainer}>
+                          <Text style={styles.pointsIcon}>⭐</Text>
                           <Text style={styles.points}>{donor.points} points</Text>
-                  </View>
-                </View>
+                        </View>
+                      </View>
                     </View>
                   ))
                 ) : (
@@ -252,19 +263,22 @@ const DonationScreen = () => {
               </View>
             </View>
 
-            {/* Quick Stats */}
+            {/* Enhanced Stats Bar */}
             <View style={styles.statsContainer}>
               <View style={styles.statCard}>
+                <Text style={styles.statIcon}>📦</Text>
                 <Text style={styles.statNumber}>50+</Text>
-                <Text style={styles.statLabel}>Items Donated</Text>
+                <Text style={styles.statLabel}>Items Shared</Text>
               </View>
               <View style={styles.statCard}>
+                <Text style={styles.statIcon}>⭐</Text>
                 <Text style={styles.statNumber}>10k+</Text>
                 <Text style={styles.statLabel}>Points Earned</Text>
               </View>
               <View style={styles.statCard}>
+                <Text style={styles.statIcon}>🔄</Text>
                 <Text style={styles.statNumber}>200+</Text>
-                <Text style={styles.statLabel}>In Proggress</Text>
+                <Text style={styles.statLabel}>In Progress</Text>
               </View>
             </View>
 
@@ -309,13 +323,23 @@ const DonationScreen = () => {
               </View>
             </View>
 
-            {/* Mission Statement Section */}
+            {/* Community Sharing CTA Section */}
             <View style={styles.missionContainer}>
               <Text style={styles.missionTitle}>שתף פריטים עם הקהילה</Text>
               <Text style={styles.missionText}>
                 ברוכים הבאים לפלטפורמה לשיתוף פריטים קהילתי. כאן תוכל לשתף פריטים שאינך משתמש בהם יותר עם אנשים בקהילה שלך.
                 המשימה שלנו היא ליצור עתיד בר-קיימא על ידי מתן חיים חדשים לפריטים שלך.
               </Text>
+              <TouchableOpacity 
+                style={styles.ctaButton}
+                onPress={() => handleCategoryPress('Infant Toys')}
+                activeOpacity={0.8}
+                accessibilityLabel="Start Sharing"
+                accessibilityRole="button"
+              >
+                <Text style={styles.ctaButtonText}>התחל לשתף</Text>
+                <Text style={styles.ctaButtonSubtext}>Start Sharing</Text>
+              </TouchableOpacity>
             </View>
           </View>
         </View>
@@ -376,10 +400,87 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   categories: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: 'column',
     marginBottom: 24,
   },
+  // Enhanced CTA Card Styles
+  ctaCard: {
+    backgroundColor: '#E8F5E9',
+    padding: 20,
+    borderRadius: 20,
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 5,
+  },
+  ctaCardSecondary: {
+    backgroundColor: '#E3F2FD',
+    padding: 20,
+    borderRadius: 20,
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 24,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 5,
+  },
+  ctaIconContainer: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 16,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  ctaEmoji: {
+    fontSize: 32,
+  },
+  ctaTextContainer: {
+    flex: 1,
+  },
+  ctaTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#2D5A27',
+    marginBottom: 2,
+    textAlign: 'right',
+    writingDirection: 'rtl',
+  },
+  ctaSubtitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#4A6F45',
+    marginBottom: 4,
+  },
+  ctaDescription: {
+    fontSize: 14,
+    color: '#2c2c2c',
+    lineHeight: 18,
+  },
+  // Legacy styles (keep for compatibility)
   categoryCard: {
     padding: 16,
     borderRadius: 16,
@@ -413,24 +514,39 @@ const styles = StyleSheet.create({
   statsContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    marginBottom: 24,
+    gap: 12,
   },
   statCard: {
+    flex: 1,
     backgroundColor: 'white',
     padding: 16,
-    borderRadius: 12,
-    width: windowWidth * 0.28,
+    borderRadius: 16,
     alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  statIcon: {
+    fontSize: 28,
+    marginBottom: 8,
   },
   statNumber: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#2D5A27',
+    color: '#1a1a1a',
     marginBottom: 4,
   },
   statLabel: {
-    fontSize: 14,
-    color: '#666',
+    fontSize: 13,
+    color: '#6f6f6f',
     textAlign: 'center',
+    fontWeight: '500',
   },
 
   leaderboardContainer: {
@@ -464,45 +580,72 @@ const styles = StyleSheet.create({
     backgroundColor: '#FCF2E9',
     borderRadius: 20,
   },
+  viewAllButtonEnhanced: {
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    backgroundColor: 'transparent',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#2D5A27',
+  },
   viewAllText: {
-    color: '#BE3E28',
+    color: '#2D5A27',
     fontSize: 14,
     fontWeight: '600',
   },
   leaderboardList: {
-    gap: 12,
+    gap: 10,
   },
   leaderboardItem: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: 12,
-    backgroundColor: '#FCF2E9',
+    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     borderLeftWidth: 4,
+    marginBottom: 10,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.08,
+    shadowRadius: 3,
+    elevation: 2,
   },
   firstPlace: {
     borderLeftColor: '#FFD700',
+    backgroundColor: '#FFFEF5',
   },
   secondPlace: {
     borderLeftColor: '#C0C0C0',
+    backgroundColor: '#FAFAFA',
   },
   thirdPlace: {
     borderLeftColor: '#CD7F32',
+    backgroundColor: '#FFF8F0',
   },
-  rankNumber: {
+  rankBadge: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 10,
+  },
+  rankMedal: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#2D5A27',
-    width: 30,
   },
   userAvatar: {
-    width: 45,
-    height: 45,
-    borderRadius: 25,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
     borderWidth: 2,
+    backgroundColor: '#F5F5F5',
   },
   firstPlaceAvatar: {
     borderColor: '#FFD700',
@@ -516,16 +659,23 @@ const styles = StyleSheet.create({
     borderColor: '#CD7F32',
     backgroundColor: '#FFF3E0',
   },
+  avatarImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 20,
+  },
   avatarText: {
-    fontSize: 20,
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#2c2c2c',
   },
   userInfo: {
     flex: 1,
   },
   userName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#2D5A27',
+    fontSize: 17,
+    fontWeight: '700',
+    color: '#2c2c2c',
     marginBottom: 4,
   },
   pointsContainer: {
@@ -533,34 +683,73 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 4,
   },
-  points: {
-    color: '#BE3E28',
+  pointsIcon: {
     fontSize: 14,
-    fontWeight: '500',
+  },
+  points: {
+    color: '#2c2c2c',
+    fontSize: 15,
+    fontWeight: '600',
   },
   missionContainer: {
-    backgroundColor: '#FCF2E9',
-    borderRadius: 12,
-    padding: 20,
-    marginTop: 24,
+    backgroundColor: '#FFF8F0',
+    borderRadius: 16,
+    padding: 24,
+    marginTop: 0,
     marginBottom: 24,
     borderWidth: 1,
     borderColor: '#E8D0B3',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
   },
   missionTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: 'bold',
     color: '#2D5A27',
-    marginBottom: 10,
+    marginBottom: 12,
     textAlign: 'right',
     writingDirection: 'rtl',
   },
   missionText: {
-    fontSize: 14,
-    color: '#333',
-    lineHeight: 20,
+    fontSize: 15,
+    color: '#2c2c2c',
+    lineHeight: 22,
     textAlign: 'right',
     writingDirection: 'rtl',
+    marginBottom: 20,
+  },
+  ctaButton: {
+    backgroundColor: '#2D5A27',
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 3,
+    },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    elevation: 4,
+    minHeight: 44,
+  },
+  ctaButtonText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    marginBottom: 2,
+  },
+  ctaButtonSubtext: {
+    fontSize: 13,
+    color: '#E8F5E9',
+    fontWeight: '500',
   },
   howItWorksContainer: {
     backgroundColor: 'white',
@@ -617,7 +806,7 @@ const styles = StyleSheet.create({
   },
   stepDescription: {
     fontSize: 14,
-    color: '#666',
+    color: '#2c2c2c',
     textAlign: 'right',
     writingDirection: 'rtl',
   },
