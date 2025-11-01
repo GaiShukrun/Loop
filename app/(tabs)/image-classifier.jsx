@@ -114,7 +114,7 @@ const ImageClassifierScreen = () => {
 
       // Launch the image library
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: 'images',
         allowsEditing: true,
         quality: 1,
         base64: true,
