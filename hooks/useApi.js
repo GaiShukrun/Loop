@@ -27,10 +27,9 @@ export const useApi = () => {
     setError(null);
     
     try {
-      console.log(`Making GET request to: ${API_URL}${endpoint}`);
+      
       const response = await axios.get(`${API_URL}${endpoint}`, config);
-      console.log('Response status:', response.status);
-      console.log('Response data:', response.data);
+      
       return response.data;
     } catch (err) {
       const errorMessage = err.response?.data?.message || err.message || 'Unknown error occurred';
